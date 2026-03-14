@@ -1,0 +1,361 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: ahx_wp_i18n\n"
+"POT-Creation-Date: 2026-03-14 18:10+0000\n"
+"MIME-Version: 1.0\n\"\n"Content-Type: text/plain; charset=UTF-8\n\"\n"Content-Transfer-Encoding: 8bit\n\"\n
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "%d Datei"
+msgid_plural "%d Dateien"
+msgstr[0] ""
+msgstr[1] ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "%d Eintrag"
+msgid_plural "%d Eintraege"
+msgstr[0] ""
+msgstr[1] ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "AHX Translations"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "AHX i18n"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Ausgewaehlt:"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Ausgewaehlte konvertieren und POT aktualisieren"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Auswahl"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Bearbeiten"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Compile MO"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Datei"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Details"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Die POT-Datei wird automatisch unter languages/<text-domain>.pot im gewaehlten Plugin oder Theme gespeichert."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Download PO"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Erfasste Sprachen:"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Erkannt aus Header:"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Es wurden i18n-Korrekturen übernommen. Bitte einen Commit der Änderungen durchführen."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Es wurden noch keine PO-Dateien fuer dieses Ziel gefunden."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Filtern"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Gefundene PO-Dateien"
+msgstr ""
+
+#. translators: 1: number of saved entries, 2: PO path */
+#. __('PO gespeichert: %1$d Eintraege in %2$s', 'ahx_wp_i18n'),
+#. (int) $save_result['updated'],
+#. (string) $save_result['po_path']
+#. );
+#. echo '<div class="notice notice-success"><p>' . esc_html($message) . '</p></div>';
+#. }
+#. if (isset($_POST['ahx_i18n_scan_plain_text']) && check_admin_referer('ahx_i18n_scan_plain_text', 'ahx_i18n_scan_plain_text_nonce')) {
+#. $pot_target_type = sanitize_key(wp_unslash($_POST['ahx_i18n_target_type']));
+#. $pot_plugin_target = sanitize_text_field(wp_unslash($_POST['ahx_i18n_plugin_target']));
+#. $pot_template_target = sanitize_text_field(wp_unslash($_POST['ahx_i18n_template_target']));
+#. $pot_text_domain = sanitize_text_field(wp_unslash($_POST['ahx_i18n_text_domain']));
+#. $target_slug = ($pot_target_type === 'template') ? $pot_template_target : $pot_plugin_target;
+#. $scan_result = ahx_i18n_scan_plain_text_candidates($pot_target_type, $target_slug, $pot_text_domain, 250);
+#. if (is_wp_error($scan_result)) {
+#. echo '<div class="notice notice-error"><p>' . esc_html($scan_result->get_error_message()) . '</p></div>';
+#. } else {
+#. $plain_candidates = isset($scan_result['candidates']) && is_array($scan_result['candidates']) ? $scan_result['candidates'] : [];
+#. $scan_message = sprintf(
+#. /* translators: %d: number of found plain text fragments
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Gefundene Textfragmente: %d"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Gefundene normale Textfragmente"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Ja"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Keine Berechtigung"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Keine PO-Dateien gefunden."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Keine POT-Datei gefunden. Bitte zuerst eine POT-Datei erzeugen."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Keine Plugins fuer die aktuellen Filter gefunden."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Keine Themes fuer die aktuellen Filter gefunden."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Kontext:"
+msgstr ""
+
+#. translators: %d: number of found plain text fragments */
+#. __('Gefundene Textfragmente: %d', 'ahx_wp_i18n'),
+#. count($plain_candidates)
+#. );
+#. echo '<div class="notice notice-info"><p>' . esc_html($scan_message) . '</p></div>';
+#. }
+#. if (isset($_POST['ahx_i18n_convert_plain_text']) && check_admin_referer('ahx_i18n_convert_plain_text', 'ahx_i18n_convert_plain_text_nonce')) {
+#. $pot_target_type = sanitize_key(wp_unslash($_POST['ahx_i18n_target_type']));
+#. $pot_plugin_target = sanitize_text_field(wp_unslash($_POST['ahx_i18n_plugin_target']));
+#. $pot_template_target = sanitize_text_field(wp_unslash($_POST['ahx_i18n_template_target']));
+#. $pot_text_domain = sanitize_text_field(wp_unslash($_POST['ahx_i18n_text_domain']));
+#. $selected = isset($_POST['ahx_i18n_plain_candidates']) ? (array) wp_unslash($_POST['ahx_i18n_plain_candidates']) : [];
+#. $target_slug = ($pot_target_type === 'template') ? $pot_template_target : $pot_plugin_target;
+#. $convert_result = ahx_i18n_apply_plain_text_conversions($pot_target_type, $target_slug, $selected);
+#. if (is_wp_error($convert_result)) {
+#. echo '<div class="notice notice-error"><p>' . esc_html($convert_result->get_error_message()) . '</p></div>';
+#. } else {
+#. $convert_message = sprintf(
+#. /* translators: 1: applied replacements, 2: updated files, 3: skipped replacements
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Konvertiert: %1$d, Dateien aktualisiert: %2$d, Uebersprungen: %3$d"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "MO erzeugt."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Nein"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Neu laden"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Nur Child-Themes"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Nur aktivierte Plugins"
+msgstr ""
+
+#. translators: 1: POT path, 2: entry label with count, 3: file label with count */
+#. __('POT erzeugt: %1$s (%2$s aus %3$s).', 'ahx_wp_i18n'),
+#. $result['output_path'],
+#. $entry_label,
+#. $file_label
+#. );
+#. echo '<div class="notice notice-success"><p>' . esc_html($message) . '</p></div>';
+#. }
+#. if (isset($_POST['ahx_i18n_create_po']) && check_admin_referer('ahx_i18n_create_po', 'ahx_i18n_create_po_nonce')) {
+#. $po_create_pot_path = sanitize_text_field(wp_unslash($_POST['ahx_i18n_create_pot_path'] ?? ''));
+#. $po_create_locale = sanitize_text_field(wp_unslash($_POST['ahx_i18n_create_locale'] ?? 'de_DE'));
+#. $pot_text_domain = sanitize_text_field(wp_unslash($_POST['ahx_i18n_create_text_domain'] ?? $pot_text_domain));
+#. if ($pot_text_domain === '') {
+#. $pot_text_domain = ahx_i18n_guess_text_domain_from_pot_path($po_create_pot_path);
+#. $create_result = ahx_i18n_create_po_from_pot($po_create_pot_path, $po_create_locale, $pot_text_domain);
+#. if (is_wp_error($create_result)) {
+#. echo '<div class="notice notice-error"><p>' . esc_html($create_result->get_error_message()) . '</p></div>';
+#. } else {
+#. $po_editor_path = (string) $create_result['po_path'];
+#. if (!empty($create_result['merged'])) {
+#. $message = sprintf(
+#. /* translators: 1: PO path, 2: total entries, 3: new entries
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "PO aktualisiert: %1$s (%2$d Eintraege gesamt, %3$d neu hinzugefuegt)."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "PO aus POT erstellen"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "PO bearbeiten"
+msgstr ""
+
+#. translators: 1: POT path, 2: entry label with count, 3: file label with count */
+#. __('POT erzeugt: %1$s (%2$s aus %3$s).', 'ahx_wp_i18n'),
+#. $result['output_path'],
+#. $entry_label,
+#. $file_label
+#. );
+#. echo '<div class="notice notice-success"><p>' . esc_html($message) . '</p></div>';
+#. }
+#. if (isset($_POST['ahx_i18n_create_po']) && check_admin_referer('ahx_i18n_create_po', 'ahx_i18n_create_po_nonce')) {
+#. $po_create_pot_path = sanitize_text_field(wp_unslash($_POST['ahx_i18n_create_pot_path'] ?? ''));
+#. $po_create_locale = sanitize_text_field(wp_unslash($_POST['ahx_i18n_create_locale'] ?? 'de_DE'));
+#. $pot_text_domain = sanitize_text_field(wp_unslash($_POST['ahx_i18n_create_text_domain'] ?? $pot_text_domain));
+#. if ($pot_text_domain === '') {
+#. $pot_text_domain = ahx_i18n_guess_text_domain_from_pot_path($po_create_pot_path);
+#. $create_result = ahx_i18n_create_po_from_pot($po_create_pot_path, $po_create_locale, $pot_text_domain);
+#. if (is_wp_error($create_result)) {
+#. echo '<div class="notice notice-error"><p>' . esc_html($create_result->get_error_message()) . '</p></div>';
+#. } else {
+#. $po_editor_path = (string) $create_result['po_path'];
+#. if (!empty($create_result['merged'])) {
+#. $message = sprintf(
+#. /* translators: 1: PO path, 2: total entries, 3: new entries */
+#. __('PO aktualisiert: %1$s (%2$d Eintraege gesamt, %3$d neu hinzugefuegt).', 'ahx_wp_i18n'),
+#. $po_editor_path,
+#. (int) $create_result['entry_count'],
+#. (int) $create_result['new_count']
+#. /* translators: 1: PO path, 2: number of entries
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "PO erzeugt: %1$s (%2$d Eintraege)."
+msgstr ""
+
+#. translators: 1: number of saved entries, 2: PO path
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "PO gespeichert: %1$d Eintraege in %2$s"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "PO speichern"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "PO-Datei erstellen"
+msgstr ""
+
+#. translators: 1: applied replacements, 2: updated files, 3: skipped replacements */
+#. __('Konvertiert: %1$d, Dateien aktualisiert: %2$d, Uebersprungen: %3$d', 'ahx_wp_i18n'),
+#. (int) $convert_result['applied'],
+#. (int) $convert_result['updated_files'],
+#. (int) $convert_result['skipped']
+#. );
+#. echo '<div class="notice notice-success"><p>' . esc_html($convert_message) . '</p></div>';
+#. if ((int) $convert_result['applied'] > 0) {
+#. $pot_result = ahx_i18n_generate_pot([
+#. 'target_type' => $pot_target_type,
+#. 'target_slug' => $target_slug,
+#. 'text_domain' => $pot_text_domain,
+#. ]);
+#. if (is_wp_error($pot_result)) {
+#. echo '<div class="notice notice-error"><p>' . esc_html($pot_result->get_error_message()) . '</p></div>';
+#. } else {
+#. $entry_count = (int) $pot_result['entry_count'];
+#. $file_count = (int) $pot_result['scanned_files'];
+#. $entry_label = sprintf(
+#. _n('%d Eintrag', '%d Eintraege', $entry_count, 'ahx_wp_i18n'),
+#. $entry_count
+#. $file_label = sprintf(
+#. _n('%d Datei', '%d Dateien', $file_count, 'ahx_wp_i18n'),
+#. $file_count
+#. $message = sprintf(
+#. /* translators: 1: POT path, 2: entry label with count, 3: file label with count
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "POT aktualisiert: %1$s (%2$s aus %3$s)."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "POT erzeugen"
+msgstr ""
+
+#. translators: 1: POT path, 2: entry label with count, 3: file label with count
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "POT erzeugt: %1$s (%2$s aus %3$s)."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "POT-Datei erzeugen"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Plugins"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Plural:"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Sprachstatus"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Suche"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Text Domain"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Textfragment"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Textfragmente scannen"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Themes"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Typ"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Ungueltiger Nonce."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Ziel ist fest auf den ausgewaehlten Eintrag gesetzt."
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Zur Commit-Seite"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Zurueck"
+msgstr ""
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Zuruecksetzen"
+msgstr ""
+
