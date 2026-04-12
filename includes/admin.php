@@ -312,7 +312,7 @@ function ahx_i18n_render_landing_page($plugins, $themes) {
     }
 
     echo '<h2>' . esc_html__('Plugins', 'ahx_wp_i18n') . ' <span class="description">(' . intval($plugin_rows) . ')</span></h2>';
-    echo '<table class="widefat striped fixed" style="margin-bottom:20px;"><thead><tr><th>Name</th><th>Text Domain</th><th>Pfad</th><th style="width:120px;">Aktion</th></tr></thead><tbody>';
+    echo '<table class="widefat striped fixed" style="margin-bottom:20px;"><thead><tr><th>' . esc_html__('Name', 'ahx_wp_i18n') . '</th><th>' . esc_html__('Text Domain', 'ahx_wp_i18n') . '</th><th>' . esc_html__('Pfad', 'ahx_wp_i18n') . '</th><th style="width:120px;">' . esc_html__('Aktion', 'ahx_wp_i18n') . '</th></tr></thead><tbody>';
     if ($plugin_rows === 0) {
         echo '<tr><td colspan="4">' . esc_html__('Keine Plugins fuer die aktuellen Filter gefunden.', 'ahx_wp_i18n') . '</td></tr>';
     } else {
@@ -359,7 +359,7 @@ function ahx_i18n_render_landing_page($plugins, $themes) {
     }
 
     echo '<h2>' . esc_html__('Themes', 'ahx_wp_i18n') . ' <span class="description">(' . intval($theme_rows) . ')</span></h2>';
-    echo '<table class="widefat striped fixed"><thead><tr><th>Name</th><th>Text Domain</th><th>Slug</th><th style="width:120px;">Aktion</th></tr></thead><tbody>';
+    echo '<table class="widefat striped fixed"><thead><tr><th>' . esc_html__('Name', 'ahx_wp_i18n') . '</th><th>' . esc_html__('Text Domain', 'ahx_wp_i18n') . '</th><th>' . esc_html__('Slug', 'ahx_wp_i18n') . '</th><th style="width:120px;">' . esc_html__('Aktion', 'ahx_wp_i18n') . '</th></tr></thead><tbody>';
     if ($theme_rows === 0) {
         echo '<tr><td colspan="4">' . esc_html__('Keine Themes fuer die aktuellen Filter gefunden.', 'ahx_wp_i18n') . '</td></tr>';
     } else {
@@ -369,7 +369,13 @@ function ahx_i18n_render_landing_page($plugins, $themes) {
 }
 
 function ahx_i18n_extract_locale_from_po_path($po_path) {
-    $locale = pathinfo((string) $po_path, PATHINFO_FILENAME);
+    $basename = pathinfo((string) $po_path, PATHINFO_FILENAME);
+    $locale = $basename;
+
+    if (preg_match('/-([A-Za-z]{2,3}(?:[_-][A-Za-z0-9]{2,})?(?:@[A-Za-z0-9]+)?)$/', $basename, $m)) {
+        $locale = (string) $m[1];
+    }
+
     $locale = trim((string) $locale);
     if ($locale === '') {
         return 'unknown';
@@ -464,6 +470,63 @@ function ahx_i18n_build_language_stats($po_files) {
     ];
 }
 
+function ahx_i18n_highlight_first_occurrence_html($line, $needle, $open_tag, $close_tag) {
+    $line = (string) $line;
+    $needle = (string) $needle;
+    if ($needle === '') {
+        return esc_html($line);
+    }
+
+    $pos = strpos($line, $needle);
+    if ($pos === false) {
+        return esc_html($line);
+    }
+
+    $before = substr($line, 0, $pos);
+    $after = substr($line, $pos + strlen($needle));
+    return esc_html($before) . $open_tag . esc_html($needle) . $close_tag . esc_html($after);
+}
+
+function ahx_i18n_highlight_converted_line_html($original_line, $converted_line, $preview_text) {
+    $original_line = (string) $original_line;
+    $converted_line = (string) $converted_line;
+    $preview_text = (string) $preview_text;
+
+    if ($original_line === $converted_line) {
+        return ahx_i18n_highlight_first_occurrence_html($converted_line, $preview_text, '<strong>', '</strong>');
+    }
+
+    $orig_len = strlen($original_line);
+    $conv_len = strlen($converted_line);
+
+    $prefix = 0;
+    $min_len = min($orig_len, $conv_len);
+    while ($prefix < $min_len && $original_line[$prefix] === $converted_line[$prefix]) {
+        $prefix++;
+    }
+
+    $suffix = 0;
+    while (
+        $suffix < ($orig_len - $prefix)
+        && $suffix < ($conv_len - $prefix)
+        && $original_line[$orig_len - 1 - $suffix] === $converted_line[$conv_len - 1 - $suffix]
+    ) {
+        $suffix++;
+    }
+
+    $changed_len = $conv_len - $prefix - $suffix;
+    if ($changed_len < 0) {
+        $changed_len = 0;
+    }
+
+    $before = substr($converted_line, 0, $prefix);
+    $changed = substr($converted_line, $prefix, $changed_len);
+    $after = substr($converted_line, $conv_len - $suffix);
+
+    $changed_html = ahx_i18n_highlight_first_occurrence_html($changed, $preview_text, '<strong>', '</strong>');
+    return esc_html($before) . '<em>' . $changed_html . '</em>' . esc_html($after);
+}
+
 function ahx_i18n_admin_page() {
     if (!current_user_can('manage_options')) {
         wp_die(__('Keine Berechtigung', 'ahx_wp_i18n'));
@@ -524,6 +587,18 @@ function ahx_i18n_admin_page() {
     $translation_roots = [
         (string) $selected_target['dir'],
     ];
+
+    $status_page_url = add_query_arg([
+        'page' => 'ahx-i18n',
+        'target_type' => $pot_target_type,
+        'target_slug' => ($pot_target_type === 'template') ? $pot_template_target : $pot_plugin_target,
+    ], admin_url('tools.php'));
+
+    $editor_po_from_get = sanitize_text_field(wp_unslash($_GET['ahx_i18n_editor_po'] ?? ''));
+    $is_editor_page = ($editor_po_from_get !== '');
+    if ($is_editor_page) {
+        $po_editor_path = $editor_po_from_get;
+    }
 
     echo '<p><strong>' . esc_html__('Ausgewaehlt:', 'ahx_wp_i18n') . '</strong> ' . esc_html($selected_target['name']) . ' (' . esc_html($pot_target_type) . ')</p>';
 
@@ -646,13 +721,50 @@ function ahx_i18n_admin_page() {
         if (is_wp_error($save_result)) {
             echo '<div class="notice notice-error"><p>' . esc_html($save_result->get_error_message()) . '</p></div>';
         } else {
+            $po_editor_path = (string) $save_result['po_path'];
             $message = sprintf(
                 /* translators: 1: number of saved entries, 2: PO path */
                 __('PO gespeichert: %1$d Eintraege in %2$s', 'ahx_wp_i18n'),
                 (int) $save_result['updated'],
                 (string) $save_result['po_path']
             );
+
+            $migration_message = '';
+            if (!empty($save_result['migrated']) && !empty($save_result['old_po_path'])) {
+                $migration_message = sprintf(
+                    /* translators: 1: old PO path, 2: new PO path */
+                    __('Dateiname automatisch migriert: %1$s -> %2$s', 'ahx_wp_i18n'),
+                    (string) $save_result['old_po_path'],
+                    (string) $save_result['po_path']
+                );
+            }
+
+            if ($is_editor_page) {
+                if (function_exists('ahx_wp_main_add_notice')) {
+                    ahx_wp_main_add_notice($message, 'success');
+                    if ($migration_message !== '') {
+                        ahx_wp_main_add_notice($migration_message, 'info');
+                    }
+                    $redirect_url = $status_page_url;
+                } else {
+                    $redirect_args = [
+                        'ahx_i18n_notice_success' => $message,
+                    ];
+                    if ($migration_message !== '') {
+                        $redirect_args['ahx_i18n_notice_info'] = $migration_message;
+                    }
+                    $redirect_url = add_query_arg($redirect_args, $status_page_url);
+                }
+                echo '<script>window.location.href=' . wp_json_encode($redirect_url) . ';</script>';
+                echo '</div>';
+                return;
+            }
+
             echo '<div class="notice notice-success"><p>' . esc_html($message) . '</p></div>';
+
+            if ($migration_message !== '') {
+                echo '<div class="notice notice-info"><p>' . esc_html($migration_message) . '</p></div>';
+            }
         }
     }
 
@@ -773,19 +885,36 @@ function ahx_i18n_admin_page() {
         }
     }
 
+    if (!$is_editor_page) {
     echo '<h2>' . esc_html__('Sprachstatus', 'ahx_wp_i18n') . '</h2>';
     echo '<p><strong>' . esc_html__('Erfasste Sprachen:', 'ahx_wp_i18n') . '</strong> ' . intval($language_stats['language_count']) . '</p>';
     if (!empty($language_stats['rows'])) {
-        echo '<table class="widefat striped fixed" style="margin-bottom:20px;"><thead><tr><th style="width:120px;">Sprache</th><th style="width:220px;">Pflegegrad</th><th style="width:180px;">Uebersetzung</th><th style="width:80px;">MO</th><th>Datei</th></tr></thead><tbody>';
+        echo '<table class="widefat striped fixed" style="margin-bottom:20px;"><thead><tr><th style="width:120px;">' . esc_html__('Sprache', 'ahx_wp_i18n') . '</th><th style="width:220px;">' . esc_html__('Pflegegrad', 'ahx_wp_i18n') . '</th><th style="width:180px;">' . esc_html__('Uebersetzung', 'ahx_wp_i18n') . '</th><th style="width:80px;">' . esc_html__('MO', 'ahx_wp_i18n') . '</th><th>' . esc_html__('Datei', 'ahx_wp_i18n') . '</th><th style="width:260px;">' . esc_html__('Aktion', 'ahx_wp_i18n') . '</th></tr></thead><tbody>';
         foreach ($language_stats['rows'] as $row) {
             $coverage = intval($row['translated']) . '/' . intval($row['total']) . ' (' . esc_html((string) $row['percent']) . '%)';
+            $row_path = (string) $row['path'];
             echo '<tr>';
             echo '<td><code>' . esc_html((string) $row['locale']) . '</code></td>';
             $grade_color = ahx_i18n_grade_color((string) $row['grade']);
             echo '<td><strong style="color:' . esc_attr($grade_color) . '">' . esc_html((string) $row['grade']) . '</strong></td>';
             echo '<td>' . $coverage . '</td>';
             echo '<td>' . ($row['has_mo'] ? esc_html__('Ja', 'ahx_wp_i18n') : esc_html__('Nein', 'ahx_wp_i18n')) . '</td>';
-            echo '<td><code>' . esc_html((string) $row['path']) . '</code></td>';
+            echo '<td><code>' . esc_html($row_path) . '</code></td>';
+            echo '<td>';
+            echo '<form method="post" style="display:inline;">';
+            echo wp_nonce_field('ahx_i18n_compile', 'ahx_i18n_compile_nonce', true, false);
+            echo '<input type="hidden" name="ahx_i18n_po_path" value="' . esc_attr($row_path) . '">';
+            echo '<button class="button button-primary" name="ahx_i18n_compile" type="submit" value="1">' . esc_html__('Compile MO', 'ahx_wp_i18n') . '</button>';
+            echo '</form>';
+            $editor_url = add_query_arg([
+                'page' => 'ahx-i18n',
+                'target_type' => $pot_target_type,
+                'target_slug' => ($pot_target_type === 'template') ? $pot_template_target : $pot_plugin_target,
+                'ahx_i18n_editor_po' => $row_path,
+            ], admin_url('tools.php'));
+            echo ' <a class="button" href="' . esc_url($editor_url) . '">' . esc_html__('Bearbeiten', 'ahx_wp_i18n') . '</a>';
+            echo ' <a class="button" href="' . esc_url(admin_url('tools.php?page=ahx-i18n&download=' . rawurlencode($row_path))) . '">' . esc_html__('Download PO', 'ahx_wp_i18n') . '</a>';
+            echo '</td>';
             echo '</tr>';
         }
         echo '</tbody></table>';
@@ -819,14 +948,29 @@ function ahx_i18n_admin_page() {
         echo '<input type="hidden" name="ahx_i18n_plugin_target" value="' . esc_attr($pot_plugin_target) . '">';
         echo '<input type="hidden" name="ahx_i18n_template_target" value="' . esc_attr($pot_template_target) . '">';
         echo '<input type="hidden" name="ahx_i18n_text_domain" value="' . esc_attr($pot_text_domain) . '">';
-        echo '<table class="widefat fixed striped"><thead><tr><th style="width:40px;">' . esc_html__('Auswahl', 'ahx_wp_i18n') . '</th><th style="width:70px;">' . esc_html__('Typ', 'ahx_wp_i18n') . '</th><th style="width:320px;">' . esc_html__('Datei', 'ahx_wp_i18n') . '</th><th>' . esc_html__('Textfragment', 'ahx_wp_i18n') . '</th></tr></thead><tbody>';
-        foreach ($plain_candidates as $candidate) {
+        echo '<style>.ahx-i18n-candidates-table tbody tr.ahx-i18n-candidate-group-even td{background:#ffffff !important;}.ahx-i18n-candidates-table tbody tr.ahx-i18n-candidate-group-odd td{background:#f6f7f7 !important;}</style>';
+        echo '<table class="widefat fixed ahx-i18n-candidates-table"><thead><tr><th style="width:40px;">' . esc_html__('Auswahl', 'ahx_wp_i18n') . '</th><th style="width:70px;">' . esc_html__('Typ', 'ahx_wp_i18n') . '</th><th style="width:320px;">' . esc_html__('Datei', 'ahx_wp_i18n') . '</th><th>' . esc_html__('Textfragment', 'ahx_wp_i18n') . '</th></tr></thead><tbody>';
+        foreach ($plain_candidates as $candidate_index => $candidate) {
+            $group_class = ($candidate_index % 2 === 0) ? 'ahx-i18n-candidate-group-even' : 'ahx-i18n-candidate-group-odd';
             $loc = $candidate['file'] . ':' . (int) $candidate['line'];
-            echo '<tr>';
+            $preview_text = isset($candidate['preview']) ? (string) $candidate['preview'] : '';
+            $line_original = isset($candidate['line_original']) ? (string) $candidate['line_original'] : '';
+            $line_converted = isset($candidate['line_converted']) ? (string) $candidate['line_converted'] : '';
+            $line_original_html = ahx_i18n_highlight_first_occurrence_html($line_original, $preview_text, '<strong>', '</strong>');
+            $line_converted_html = ahx_i18n_highlight_converted_line_html($line_original, $line_converted, $preview_text);
+            echo '<tr class="' . esc_attr($group_class) . '">';
             echo '<td><input type="checkbox" name="ahx_i18n_plain_candidates[]" value="' . esc_attr($candidate['id']) . '"></td>';
             echo '<td>' . esc_html(strtoupper((string) $candidate['kind'])) . '</td>';
             echo '<td><code>' . esc_html($loc) . '</code></td>';
             echo '<td>' . esc_html((string) $candidate['preview']) . '</td>';
+            echo '</tr>';
+
+            echo '<tr class="ahx-i18n-candidate-line ' . esc_attr($group_class) . '">';
+            echo '<td></td><td colspan="3"><strong>' . esc_html__('Gefundene Zeile:', 'ahx_wp_i18n') . '</strong><br><code style="display:block; white-space:pre-wrap;">' . $line_original_html . '</code></td>';
+            echo '</tr>';
+
+            echo '<tr class="ahx-i18n-candidate-line ' . esc_attr($group_class) . '">';
+            echo '<td></td><td colspan="3"><strong>' . esc_html__('Zeile nach Konvertierung:', 'ahx_wp_i18n') . '</strong><br><code style="display:block; white-space:pre-wrap;">' . $line_converted_html . '</code></td>';
             echo '</tr>';
         }
         echo '</tbody></table>';
@@ -838,19 +982,19 @@ function ahx_i18n_admin_page() {
     echo '<form method="post" style="margin-bottom:20px;">';
     echo wp_nonce_field('ahx_i18n_create_po', 'ahx_i18n_create_po_nonce', true, false);
     echo '<div style="display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end;">';
-    echo '<label style="min-width:420px;">POT<br><select id="ahx_i18n_create_pot_path" name="ahx_i18n_create_pot_path" class="regular-text" style="width:420px;">';
+    echo '<label style="min-width:420px;">' . esc_html__('POT', 'ahx_wp_i18n') . '<br><select id="ahx_i18n_create_pot_path" name="ahx_i18n_create_pot_path" class="regular-text" style="width:420px;">';
     foreach ($pot_files as $pot_file) {
         $selected = ($po_create_pot_path === '' && basename($pot_file) === ($pot_text_domain . '.pot')) || ($po_create_pot_path === $pot_file);
         $pot_domain = ahx_i18n_guess_text_domain_from_pot_path($pot_file);
         echo '<option value="' . esc_attr($pot_file) . '" data-text-domain="' . esc_attr($pot_domain) . '" ' . selected($selected, true, false) . '>' . esc_html($pot_file) . '</option>';
     }
     echo '</select></label>';
-    echo '<label>Locale<br><select name="ahx_i18n_create_locale" class="regular-text">';
+    echo '<label>' . esc_html__('Locale', 'ahx_wp_i18n') . '<br><select name="ahx_i18n_create_locale" class="regular-text">';
     foreach ($locale_options as $locale_option) {
         echo '<option value="' . esc_attr($locale_option) . '" ' . selected($po_create_locale, $locale_option, false) . '>' . esc_html($locale_option) . '</option>';
     }
     echo '</select></label>';
-    echo '<label>Text Domain<br><input id="ahx_i18n_create_text_domain" type="text" name="ahx_i18n_create_text_domain" class="regular-text" value="' . esc_attr($pot_text_domain) . '"></label>';
+    echo '<label>' . esc_html__('Text Domain', 'ahx_wp_i18n') . '<br><input id="ahx_i18n_create_text_domain" type="text" name="ahx_i18n_create_text_domain" class="regular-text" value="' . esc_attr($pot_text_domain) . '"></label>';
     echo '<button class="button button-primary" type="submit" name="ahx_i18n_create_po" value="1" style="height:32px;">' . esc_html__('PO aus POT erstellen', 'ahx_wp_i18n') . '</button>';
     echo '</div>';
     if (empty($pot_files)) {
@@ -858,16 +1002,26 @@ function ahx_i18n_admin_page() {
     }
     echo '<script>(function(){var pot=document.getElementById("ahx_i18n_create_pot_path");var domain=document.getElementById("ahx_i18n_create_text_domain");if(!pot||!domain){return;}function selectedDomain(){if(pot.selectedIndex<0){return "";}var opt=pot.options[pot.selectedIndex];return opt&&opt.dataset?opt.dataset.textDomain||"":"";}function sync(){var d=selectedDomain();if(d){domain.value=d;}}pot.addEventListener("change",sync);})();</script>';
     echo '</form>';
+    }
 
     if (is_array($po_editor_data) && !empty($po_editor_data['entries'])) {
         $editor_entries = $po_editor_data['entries'];
         $editor_path = (string) $po_editor_data['po_path'];
-        $editor_locale = pathinfo($editor_path, PATHINFO_FILENAME);
+        $editor_basename = pathinfo($editor_path, PATHINFO_FILENAME);
+        $editor_is_legacy_name = ahx_i18n_is_legacy_translation_basename($editor_basename);
+        $editor_locale = ahx_i18n_extract_locale_from_po_path($editor_path);
         if ($editor_locale === '') {
             $editor_locale = 'de_DE';
         }
         echo '<h2>' . esc_html__('PO bearbeiten', 'ahx_wp_i18n') . '</h2>';
         echo '<p><code>' . esc_html($editor_path) . '</code></p>';
+        if ($editor_is_legacy_name) {
+            $legacy_target = ahx_i18n_build_translation_filename($pot_text_domain, $editor_locale, 'po');
+            echo '<p class="description">' . esc_html(sprintf(
+                __('Hinweis: Diese Legacy-Datei wird beim Speichern automatisch auf das neue Format umbenannt (%s).', 'ahx_wp_i18n'),
+                $legacy_target
+            )) . '</p>';
+        }
         echo '<form method="post">';
         echo wp_nonce_field('ahx_i18n_save_po', 'ahx_i18n_save_po_nonce', true, false);
         echo wp_nonce_field('ahx_i18n_open_po', 'ahx_i18n_open_po_nonce', true, false);
@@ -877,7 +1031,7 @@ function ahx_i18n_admin_page() {
         echo '<input type="hidden" name="ahx_i18n_po_domain" value="' . esc_attr($pot_text_domain) . '">';
         echo '<p><label>' . esc_html__('Suche', 'ahx_wp_i18n') . ' <input type="text" name="ahx_i18n_po_search" value="' . esc_attr($po_editor_search) . '" class="regular-text"></label> ';
         echo '<button class="button" type="submit" name="ahx_i18n_open_po" value="1">' . esc_html__('Neu laden', 'ahx_wp_i18n') . '</button></p>';
-        echo '<table class="widefat striped fixed"><thead><tr><th style="width:45%;">Original</th><th style="width:55%;">Uebersetzung</th></tr></thead><tbody>';
+        echo '<table class="widefat striped fixed"><thead><tr><th style="width:45%;">' . esc_html__('Original', 'ahx_wp_i18n') . '</th><th style="width:55%;">' . esc_html__('Uebersetzung', 'ahx_wp_i18n') . '</th></tr></thead><tbody>';
         foreach ($editor_entries as $item) {
             echo '<tr>';
             echo '<td>';
@@ -892,7 +1046,7 @@ function ahx_i18n_admin_page() {
             echo '<td>';
             echo '<textarea name="ahx_i18n_msgstr_0[' . esc_attr($item['key']) . ']" rows="2" style="width:100%;">' . esc_textarea($item['msgstr_0']) . '</textarea>';
             if ($item['msgid_plural'] !== '') {
-                echo '<label style="display:block; margin-top:6px;">Plural 2</label>';
+                echo '<label style="display:block; margin-top:6px;">' . esc_html__('Plural 2', 'ahx_wp_i18n') . '</label>';
                 echo '<textarea name="ahx_i18n_msgstr_1[' . esc_attr($item['key']) . ']" rows="2" style="width:100%;">' . esc_textarea($item['msgstr_1']) . '</textarea>';
             }
             echo '</td>';
@@ -901,30 +1055,6 @@ function ahx_i18n_admin_page() {
         echo '</tbody></table>';
         echo '<p><button class="button button-primary" type="submit" name="ahx_i18n_save_po" value="1">' . esc_html__('PO speichern', 'ahx_wp_i18n') . '</button></p>';
         echo '</form>';
-    }
-
-    echo '<h2>' . esc_html__('Gefundene PO-Dateien', 'ahx_wp_i18n') . '</h2>';
-    if (empty($po_files)) {
-        echo '<p>' . esc_html__('Keine PO-Dateien gefunden.', 'ahx_wp_i18n') . '</p>';
-    } else {
-        echo '<table class="widefat fixed"><thead><tr><th>Path</th><th>Aktion</th></tr></thead><tbody>';
-        foreach ($po_files as $p) {
-            echo '<tr><td>' . esc_html($p) . '</td><td>';
-            echo '<form method="post" style="display:inline;">';
-            echo wp_nonce_field('ahx_i18n_compile', 'ahx_i18n_compile_nonce', true, false);
-            echo '<input type="hidden" name="ahx_i18n_po_path" value="' . esc_attr($p) . '">';
-            echo '<button class="button button-primary" name="ahx_i18n_compile" type="submit" value="1">' . esc_html__('Compile MO', 'ahx_wp_i18n') . '</button>';
-            echo '</form>';
-            echo ' <form method="post" style="display:inline; margin-left:6px;">';
-            echo wp_nonce_field('ahx_i18n_open_po', 'ahx_i18n_open_po_nonce', true, false);
-            echo '<input type="hidden" name="ahx_i18n_open_po_path" value="' . esc_attr($p) . '">';
-            echo '<input type="hidden" name="ahx_i18n_po_search" value="">';
-            echo '<button class="button" name="ahx_i18n_open_po" type="submit" value="1">' . esc_html__('Bearbeiten', 'ahx_wp_i18n') . '</button>';
-            echo '</form>';
-            echo ' <a class="button" href="' . esc_url(admin_url('tools.php?page=ahx-i18n&download=' . rawurlencode($p))) . '">' . esc_html__('Download PO', 'ahx_wp_i18n') . '</a>';
-            echo '</td></tr>';
-        }
-        echo '</tbody></table>';
     }
 
     // Download handler

@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ahx_wp_i18n\n"
-"POT-Creation-Date: 2026-03-14 18:16+0000\n"
-"PO-Revision-Date: 2026-03-14 18:16+0000\n"
+"POT-Creation-Date: 2026-04-12 15:32+0000\n"
+"PO-Revision-Date: 2026-04-12 15:32+0000\n"
 "Language: en_US\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -19,7 +19,7 @@ msgstr[1] "%d files"
 msgid "%d Eintrag"
 msgid_plural "%d Eintraege"
 msgstr[0] "%d entry"
-msgstr[1] "% entries"
+msgstr[1] "%d entries"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "AHX Translations"
@@ -27,7 +27,7 @@ msgstr "AHX Translations"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "AHX i18n"
-msgstr "AHX i18n"
+msgstr "AHX i18n EN_US"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Ausgewaehlt:"
@@ -53,6 +53,19 @@ msgstr "Compile MO"
 msgid "Datei"
 msgstr "File"
 
+#. translators: 1: number of saved entries, 2: PO path */
+#. __('PO gespeichert: %1$d Eintraege in %2$s', 'ahx_wp_i18n'),
+#. (int) $save_result['updated'],
+#. (string) $save_result['po_path']
+#. );
+#. echo '<div class="notice notice-success"><p>' . esc_html($message) . '</p></div>';
+#. if (!empty($save_result['migrated']) && !empty($save_result['old_po_path'])) {
+#. $migration_message = sprintf(
+#. /* translators: 1: old PO path, 2: new PO path
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Dateiname automatisch migriert: %1$s -> %2$s"
+msgstr "Filename migrated automatically: %1$s -> %2$s"
+
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Details"
 msgstr "Details"
@@ -67,34 +80,34 @@ msgstr "Download PO"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Erfasste Sprachen:"
-msgstr ""
+msgstr "Captured languages:"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Erkannt aus Header:"
-msgstr ""
+msgstr "Detected from header:"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Es wurden i18n-Korrekturen übernommen. Bitte einen Commit der Änderungen durchführen."
-msgstr ""
+msgstr "i18n corrections were applied. Please commit the changes."
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Es wurden noch keine PO-Dateien fuer dieses Ziel gefunden."
-msgstr ""
+msgstr "No PO files have been found for this target yet."
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Filtern"
-msgstr ""
+msgstr "Filter"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Gefundene PO-Dateien"
 msgstr "Found PO-files"
 
-#. translators: 1: number of saved entries, 2: PO path */
-#. __('PO gespeichert: %1$d Eintraege in %2$s', 'ahx_wp_i18n'),
-#. (int) $save_result['updated'],
+#. translators: 1: old PO path, 2: new PO path */
+#. __('Dateiname automatisch migriert: %1$s -> %2$s', 'ahx_wp_i18n'),
+#. (string) $save_result['old_po_path'],
 #. (string) $save_result['po_path']
 #. );
-#. echo '<div class="notice notice-success"><p>' . esc_html($message) . '</p></div>';
+#. echo '<div class="notice notice-info"><p>' . esc_html($migration_message) . '</p></div>';
 #. }
 #. if (isset($_POST['ahx_i18n_scan_plain_text']) && check_admin_referer('ahx_i18n_scan_plain_text', 'ahx_i18n_scan_plain_text_nonce')) {
 #. $pot_target_type = sanitize_key(wp_unslash($_POST['ahx_i18n_target_type']));
@@ -111,15 +124,23 @@ msgstr "Found PO-files"
 #. /* translators: %d: number of found plain text fragments
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Gefundene Textfragmente: %d"
-msgstr ""
+msgstr "Found text fragments: %d"
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Gefundene Zeile:"
+msgstr "Found line:"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Gefundene normale Textfragmente"
-msgstr ""
+msgstr "Found plain text fragments"
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Hinweis: Diese Legacy-Datei wird beim Speichern automatisch auf das neue Format umbenannt (%s)."
+msgstr "Notice: This legacy-file will be renamed automatically into the new format while saving (%s)."
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Ja"
-msgstr ""
+msgstr "Yes"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Keine Berechtigung"
@@ -166,7 +187,7 @@ msgstr "Context:"
 #. /* translators: 1: applied replacements, 2: updated files, 3: skipped replacements
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Konvertiert: %1$d, Dateien aktualisiert: %2$d, Uebersprungen: %3$d"
-msgstr ""
+msgstr "Converted: %1$d, files updated: %2$d, skipped: %3$d"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "MO erzeugt."
@@ -212,7 +233,7 @@ msgstr "active plugins only"
 #. /* translators: 1: PO path, 2: total entries, 3: new entries
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "PO aktualisiert: %1$s (%2$d Eintraege gesamt, %3$d neu hinzugefuegt)."
-msgstr ""
+msgstr "PO updated: %1$s (%2$d entries total, %3$d newly added)."
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "PO aus POT erstellen"
@@ -251,12 +272,12 @@ msgstr "Edit PO"
 #. /* translators: 1: PO path, 2: number of entries
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "PO erzeugt: %1$s (%2$d Eintraege)."
-msgstr ""
+msgstr "PO created: %1$s (%2$d entries)."
 
 #. translators: 1: number of saved entries, 2: PO path
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "PO gespeichert: %1$d Eintraege in %2$s"
-msgstr ""
+msgstr "PO saved: %1$d entries in %2$s"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "PO speichern"
@@ -294,7 +315,7 @@ msgstr "Create PO-file"
 #. /* translators: 1: POT path, 2: entry label with count, 3: file label with count
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "POT aktualisiert: %1$s (%2$s aus %3$s)."
-msgstr ""
+msgstr "POT updated: %1$s (%2$s from %3$s)."
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "POT erzeugen"
@@ -303,7 +324,7 @@ msgstr "Create POT"
 #. translators: 1: POT path, 2: entry label with count, 3: file label with count
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "POT erzeugt: %1$s (%2$s aus %3$s)."
-msgstr ""
+msgstr "POT created: %1$s (%2$s from %3$s)."
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "POT-Datei erzeugen"
@@ -315,11 +336,11 @@ msgstr "Plugins"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Plural:"
-msgstr ""
+msgstr "Plural:"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Sprachstatus"
-msgstr ""
+msgstr "Language status"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Suche"
@@ -331,11 +352,11 @@ msgstr "Text-domain"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Textfragment"
-msgstr ""
+msgstr "Text fragment"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Textfragmente scannen"
-msgstr ""
+msgstr "Scan text fragments"
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Themes"
@@ -350,8 +371,12 @@ msgid "Ungueltiger Nonce."
 msgstr "Invalid nonce."
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
+msgid "Zeile nach Konvertierung:"
+msgstr "Line after conversion:"
+
+#: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Ziel ist fest auf den ausgewaehlten Eintrag gesetzt."
-msgstr ""
+msgstr "The target is fixed to the selected item."
 
 #: C:/wamp64/www/wordpress/wp-content/plugins/ahx_wp_i18n/includes/admin.php
 msgid "Zur Commit-Seite"

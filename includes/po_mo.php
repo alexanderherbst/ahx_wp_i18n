@@ -5,39 +5,6 @@ if (!defined('ABSPATH')) exit;
  * Very small PO -> MO compiler fallback and helpers.
  */
 
-function ahx_i18n_parse_po($po_contents) {
-    $entries = [];
-    $lines = preg_split("/\r\n|\n|\r/", $po_contents);
-    $msgid = $msgstr = null;
-    $state = null;
-    foreach ($lines as $line) {
-        $line = trim($line);
-        if ($line === '' || strpos($line, '#') === 0) continue;
-        if (preg_match('/^msgid\s+"(.*)"$/', $line, $m)) {
-            $state = 'msgid';
-            $msgid = stripcslashes($m[1]);
-            $msgstr = '';
-            continue;
-        }
-        if (preg_match('/^msgstr\s+"(.*)"$/', $line, $m)) {
-            $state = 'msgstr';
-            $msgstr = stripcslashes($m[1]);
-            $entries[$msgid] = $msgstr;
-            continue;
-        }
-        // continued lines
-        if (preg_match('/^"(.*)"$/', $line, $m) && $state && $msgid !== null) {
-            if ($state === 'msgid') {
-                $msgid .= stripcslashes($m[1]);
-            } elseif ($state === 'msgstr') {
-                $msgstr .= stripcslashes($m[1]);
-                $entries[$msgid] = $msgstr;
-            }
-        }
-    }
-    return $entries;
-}
-
 function ahx_i18n_compile_mo($po_path, $mo_path) {
     // Prefer msgfmt if available
     if (function_exists('exec')) {
@@ -49,68 +16,89 @@ function ahx_i18n_compile_mo($po_path, $mo_path) {
         }
     }
 
-    // Fallback: simple PHP implementation (supports basic msgid/msgstr only)
+    // Fallback: build a valid GNU MO file in PHP.
     $po = file_get_contents($po_path);
     if ($po === false) return new WP_Error('read_failed', 'Could not read PO file');
-    $entries = ahx_i18n_parse_po($po);
+    $entries = ahx_i18n_parse_gettext_entries($po);
 
-    $keys = array_keys($entries);
-    $vals = array_values($entries);
-    $count = count($keys);
+    $catalog = [];
+    foreach ($entries as $entry) {
+        $msgid = isset($entry['msgid']) ? (string) $entry['msgid'] : '';
+        if ($msgid === null) {
+            continue;
+        }
 
-    $offset = 28; // header size
-    $id_table = '';
-    $str_table = '';
-    $id_offset = $offset + $count * 16;
-    $str_offset = $id_offset;
+        $context = isset($entry['context']) ? (string) $entry['context'] : '';
+        $plural = isset($entry['msgid_plural']) ? (string) $entry['msgid_plural'] : '';
+        $msgstr = isset($entry['msgstr']) && is_array($entry['msgstr']) ? $entry['msgstr'] : [];
 
-    $id_bin = '';
-    $str_bin = '';
+        $original = $msgid;
+        if ($context !== '') {
+            $original = $context . "\x04" . $original;
+        }
+        if ($plural !== '') {
+            $original .= "\0" . $plural;
+        }
 
-    for ($i = 0; $i < $count; $i++) {
-        $id = $keys[$i];
-        $str = $vals[$i];
-        $id_bin .= $id . "\0";
-        $str_bin .= $str . "\0";
+        if ($plural !== '') {
+            ksort($msgstr);
+            $translated_parts = [];
+            foreach ($msgstr as $value) {
+                $translated_parts[] = (string) $value;
+            }
+            $translated = implode("\0", $translated_parts);
+        } else {
+            $translated = (string) ($msgstr[0] ?? '');
+        }
+
+        $catalog[$original] = $translated;
     }
 
-    $id_len = strlen($id_bin);
-    $str_len = strlen($str_bin);
+    ksort($catalog, SORT_STRING);
+    $count = count($catalog);
 
-    // build tables
-    $id_table .= pack('V', $count); // n
-    $id_table .= pack('V', $offset + 16 * $count); // o
+    $header_size = 28;
+    $originals_offset = $header_size;
+    $translations_offset = $originals_offset + ($count * 8);
+    $strings_offset = $translations_offset + ($count * 8);
 
-    // but we will build proper header
+    $original_table = '';
+    $translation_table = '';
+    $original_block = '';
+    $translation_block = '';
+    $current_original_offset = $strings_offset;
+    $current_translation_offset = $strings_offset;
+
+    foreach ($catalog as $original => $translated) {
+        $current_translation_offset += strlen($original) + 1;
+    }
+
+    foreach ($catalog as $original => $translated) {
+        $original_length = strlen($original);
+        $translation_length = strlen($translated);
+
+        $original_table .= pack('V', $original_length) . pack('V', $current_original_offset);
+        $translation_table .= pack('V', $translation_length) . pack('V', $current_translation_offset);
+
+        $original_block .= $original . "\0";
+        $translation_block .= $translated . "\0";
+
+        $current_original_offset += $original_length + 1;
+        $current_translation_offset += $translation_length + 1;
+    }
+
     $mo = '';
     $mo .= pack('V', 0x950412de);
-    $mo .= pack('V', 0); // revision
+    $mo .= pack('V', 0);
     $mo .= pack('V', $count);
-    $mo .= pack('V', 28); // orig tbl offset
-    $mo .= pack('V', 28 + 16 * $count); // trans tbl offset
-    $mo .= pack('V', 0); // hash table size
-    $mo .= pack('V', 0); // hash table offset
-
-    $orig_offset = 28 + 16 * $count * 2;
-    $current_offset = $orig_offset;
-
-    $orig_table = '';
-    $trans_table = '';
-    $orig_bin = '';
-    $trans_bin = '';
-
-    for ($i = 0; $i < $count; $i++) {
-        $o = $keys[$i] . "\0";
-        $t = $vals[$i] . "\0";
-        $orig_table .= pack('V', strlen($o)) . pack('V', $current_offset);
-        $current_offset += strlen($o);
-        $trans_table .= pack('V', strlen($t)) . pack('V', $current_offset);
-        $current_offset += strlen($t);
-        $orig_bin .= $o;
-        $trans_bin .= $t;
-    }
-
-    $mo .= $orig_table . $trans_table . $orig_bin . $trans_bin;
+    $mo .= pack('V', $originals_offset);
+    $mo .= pack('V', $translations_offset);
+    $mo .= pack('V', 0);
+    $mo .= pack('V', 0);
+    $mo .= $original_table;
+    $mo .= $translation_table;
+    $mo .= $original_block;
+    $mo .= $translation_block;
 
     $res = @file_put_contents($mo_path, $mo);
     if ($res === false) return new WP_Error('write_failed', 'Could not write MO file');
@@ -732,6 +720,28 @@ function ahx_i18n_render_po_from_entries($entries, $text_domain, $locale) {
     return $out;
 }
 
+function ahx_i18n_build_translation_filename($text_domain, $locale, $extension = 'po') {
+    $text_domain = trim((string) $text_domain);
+    $locale = trim((string) $locale);
+    $extension = strtolower(trim((string) $extension));
+
+    if ($extension === '') {
+        $extension = 'po';
+    }
+
+    return $text_domain . '-' . $locale . '.' . $extension;
+}
+
+function ahx_i18n_is_legacy_translation_basename($basename) {
+    $basename = trim((string) $basename);
+    if ($basename === '') {
+        return false;
+    }
+
+    // Legacy naming is locale-only, e.g. en_US.po
+    return (bool) preg_match('/^[A-Za-z]{2,3}(?:[_-][A-Za-z0-9]{2,})?(?:@[A-Za-z0-9]+)?$/', $basename);
+}
+
 function ahx_i18n_create_po_from_pot($pot_path, $locale, $text_domain, $po_path = '') {
     $pot_path = (string) $pot_path;
     if (!is_file($pot_path)) {
@@ -749,7 +759,8 @@ function ahx_i18n_create_po_from_pot($pot_path, $locale, $text_domain, $po_path 
     }
 
     if ($po_path === '') {
-        $po_path = trailingslashit(dirname($pot_path)) . $locale . '.po';
+        $filename = ahx_i18n_build_translation_filename($text_domain, $locale, 'po');
+        $po_path = trailingslashit(dirname($pot_path)) . $filename;
     }
 
     $pot_contents = @file_get_contents($pot_path);
@@ -899,14 +910,53 @@ function ahx_i18n_save_po_translations($po_path, $text_domain, $locale, $transla
     }
     unset($entry);
 
+    $text_domain = trim((string) $text_domain);
+    $locale = trim((string) $locale);
+    $source_basename = pathinfo($po_path, PATHINFO_FILENAME);
+    $source_extension = pathinfo($po_path, PATHINFO_EXTENSION);
+
+    if ($locale === '' || strtolower($locale) === 'unknown') {
+        if (preg_match('/-([A-Za-z]{2,3}(?:[_-][A-Za-z0-9]{2,})?(?:@[A-Za-z0-9]+)?)$/', (string) $source_basename, $m)) {
+            $locale = (string) $m[1];
+        } else {
+            $locale = (string) $source_basename;
+        }
+    }
+
+    if ($text_domain === '') {
+        if (preg_match('/^(.+)-[A-Za-z]{2,3}(?:[_-][A-Za-z0-9]{2,})?(?:@[A-Za-z0-9]+)?$/', (string) $source_basename, $m)) {
+            $text_domain = trim((string) $m[1]);
+        }
+    }
+
+    $target_po_path = $po_path;
+    $migrated = false;
+    if ($text_domain !== '' && ahx_i18n_is_legacy_translation_basename($source_basename)) {
+        $canonical_filename = ahx_i18n_build_translation_filename($text_domain, $locale, 'po');
+        $target_po_path = trailingslashit(dirname($po_path)) . $canonical_filename;
+        $migrated = ($target_po_path !== $po_path);
+    }
+
     $new_contents = ahx_i18n_render_po_from_entries($entries, (string) $text_domain, (string) $locale);
-    if (@file_put_contents($po_path, $new_contents) === false) {
+    if (@file_put_contents($target_po_path, $new_contents) === false) {
         return new WP_Error('po_write_failed', 'Could not save PO file');
+    }
+
+    if ($migrated && is_file($po_path)) {
+        @unlink($po_path);
+    }
+
+    $source_mo_path = preg_replace('/\.po$/i', '.mo', $po_path);
+    $target_mo_path = preg_replace('/\.po$/i', '.mo', $target_po_path);
+    if ($migrated && $source_mo_path && $target_mo_path && is_string($source_mo_path) && is_string($target_mo_path) && is_file($source_mo_path)) {
+        @rename($source_mo_path, $target_mo_path);
     }
 
     return [
         'updated' => $updated,
-        'po_path' => $po_path,
+        'po_path' => $target_po_path,
+        'migrated' => $migrated,
+        'old_po_path' => $po_path,
     ];
 }
 
@@ -959,6 +1009,9 @@ function ahx_i18n_find_plain_text_in_file($file, $contents, $text_domain, $limit
 
             $full = $m[0][0];
             $start = (int) $m[0][1];
+            if (ahx_i18n_is_offset_in_php_comment($contents, $start)) {
+                continue;
+            }
             $keyword = strtolower((string) $m[1][0]);
             $text = trim((string) $m[3][0]);
             if (!ahx_i18n_is_plain_text_candidate($text)) {
@@ -967,6 +1020,142 @@ function ahx_i18n_find_plain_text_in_file($file, $contents, $text_domain, $limit
 
             $replacement = ($keyword === 'print' ? 'print ' : 'echo ') . 'esc_html__(' . ahx_i18n_php_quote($text) . ', ' . ahx_i18n_php_quote($text_domain) . ');';
             $results[] = ahx_i18n_build_plain_candidate($file, $contents, $start, $start + strlen($full), $full, $replacement, $text, 'php');
+        }
+    }
+
+    if (count($results) >= $limit) {
+        return $results;
+    }
+
+    // Case 1b: multiple HTML text nodes inside one quoted echo/print string.
+    $echo_string_patterns = [
+        [
+            'pattern' => '/\b(echo|print)\s+\'((?:\\\\.|[^\'\\\\])*)\'\s*;/u',
+            'quote' => "'",
+        ],
+        [
+            'pattern' => '/\b(echo|print)\s+"((?:\\\\.|[^"\\\\])*)"\s*;/u',
+            'quote' => '"',
+        ],
+    ];
+
+    foreach ($echo_string_patterns as $echo_string_pattern) {
+        if (count($results) >= $limit) {
+            break;
+        }
+
+        if (!preg_match_all($echo_string_pattern['pattern'], $contents, $echo_string_matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+            continue;
+        }
+
+        foreach ($echo_string_matches as $match) {
+            if (count($results) >= $limit) {
+                break;
+            }
+
+            $string_body = (string) $match[2][0];
+            $body_offset = (int) $match[2][1];
+            $quote = $echo_string_pattern['quote'];
+
+            if (strpos($string_body, '<') === false || strpos($string_body, '>') === false) {
+                continue;
+            }
+
+            if (!preg_match_all('/>([^<\r\n][^<]{1,200})</', $string_body, $text_matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+                continue;
+            }
+
+            foreach ($text_matches as $text_match) {
+                if (count($results) >= $limit) {
+                    break;
+                }
+
+                $raw = (string) $text_match[1][0];
+                $raw_offset = $body_offset + (int) $text_match[1][1];
+                if (ahx_i18n_is_offset_in_php_comment($contents, $raw_offset)) {
+                    continue;
+                }
+                $raw_local_offset = (int) $text_match[1][1];
+                $before_raw = substr($string_body, 0, $raw_local_offset);
+                $tag_name = ahx_i18n_extract_trailing_open_tag_name($before_raw);
+                if (ahx_i18n_is_non_translatable_html_context($tag_name)) {
+                    continue;
+                }
+                $trimmed = trim(html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+                if (!ahx_i18n_is_plain_text_candidate($trimmed)) {
+                    continue;
+                }
+
+                $leading = (string) preg_replace('/^(\s*).*$/s', '$1', $raw);
+                $trailing = (string) preg_replace('/^.*?(\s*)$/s', '$1', $raw);
+                $replacement = $quote
+                    . ' . esc_html__('
+                    . ahx_i18n_php_quote($trimmed)
+                    . ', '
+                    . ahx_i18n_php_quote($text_domain)
+                    . ') . '
+                    . $quote;
+
+                if ($leading !== '' || $trailing !== '') {
+                    $replacement = $leading . $replacement . $trailing;
+                }
+
+                $results[] = ahx_i18n_build_plain_candidate(
+                    $file,
+                    $contents,
+                    $raw_offset,
+                    $raw_offset + strlen($raw),
+                    $raw,
+                    $replacement,
+                    $trimmed,
+                    'html-echo-multi'
+                );
+            }
+        }
+    }
+
+    // Case 3: HTML-wrapped text in an echo/print string, e.g. echo '<p>Text</p>';
+    $html_echo_cases = [
+        [
+            'pattern' => '/\b(echo|print)\s+\'((?:[^\'<\r\n]*)(?:<[a-z][a-z0-9]*(?:\s[^\'>]*)?>))([^<>\'"]{2,}?)((?:<\/[a-z][a-z0-9]*>)(?:[^\'\r\n]*))\'\s*;/i',
+            'q'       => "'",
+        ],
+        [
+            'pattern' => '/\b(echo|print)\s+"((?:[^"<\r\n]*)(?:<[a-z][a-z0-9]*(?:\s[^">]*)?>))([^<>\'"]{2,}?)((?:<\/[a-z][a-z0-9]*>)(?:[^"\r\n]*))"\s*;/i',
+            'q'       => '"',
+        ],
+    ];
+    foreach ($html_echo_cases as $html_echo_case) {
+        if (count($results) >= $limit) {
+            break;
+        }
+        if (!preg_match_all($html_echo_case['pattern'], $contents, $html_echo_matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE)) {
+            continue;
+        }
+        foreach ($html_echo_matches as $m) {
+            if (count($results) >= $limit) {
+                break;
+            }
+            $full    = $m[0][0];
+            $start   = (int) $m[0][1];
+            if (ahx_i18n_is_offset_in_php_comment($contents, $start)) {
+                continue;
+            }
+            $keyword = strtolower((string) $m[1][0]);
+            $before  = (string) $m[2][0];
+            $text    = trim((string) $m[3][0]);
+            $after   = (string) $m[4][0];
+            $tag_name = ahx_i18n_extract_trailing_open_tag_name($before);
+            if (ahx_i18n_is_non_translatable_html_context($tag_name)) {
+                continue;
+            }
+            if (!ahx_i18n_is_plain_text_candidate($text)) {
+                continue;
+            }
+            $q           = $html_echo_case['q'];
+            $keyword_str = ($keyword === 'print') ? 'print ' : 'echo ';
+            $replacement = $keyword_str . $q . $before . $q . ' . esc_html__(' . ahx_i18n_php_quote($text) . ', ' . ahx_i18n_php_quote($text_domain) . ') . ' . $q . $after . $q . ';';
+            $results[]   = ahx_i18n_build_plain_candidate($file, $contents, $start, $start + strlen($full), $full, $replacement, $text, 'html-echo');
         }
     }
 
@@ -1001,6 +1190,12 @@ function ahx_i18n_find_plain_text_in_file($file, $contents, $text_domain, $limit
 
             $raw = (string) $tm[1][0];
             $raw_start = $seg_offset + (int) $tm[1][1];
+            $raw_local_offset = (int) $tm[1][1];
+            $before_raw = substr($seg_text, 0, $raw_local_offset);
+            $tag_name = ahx_i18n_extract_trailing_open_tag_name($before_raw);
+            if (ahx_i18n_is_non_translatable_html_context($tag_name)) {
+                continue;
+            }
             $trimmed = trim(html_entity_decode($raw, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
             if (!ahx_i18n_is_plain_text_candidate($trimmed)) {
                 continue;
@@ -1021,6 +1216,9 @@ function ahx_i18n_is_plain_text_candidate($text) {
     if ($text === '' || strlen($text) < 2) {
         return false;
     }
+    if (ahx_i18n_looks_like_php_expression_fragment($text)) {
+        return false;
+    }
     if (!preg_match('/[A-Za-z]/', $text)) {
         return false;
     }
@@ -1030,15 +1228,119 @@ function ahx_i18n_is_plain_text_candidate($text) {
     if (strpos($text, '__(') !== false || strpos($text, '_e(') !== false) {
         return false;
     }
+    // reject strings that already contain HTML tags (handled by Case 3)
+    if (preg_match('/<[a-z][a-z0-9]*[\s>\/]|<\/[a-z]/', $text)) {
+        return false;
+    }
     return true;
 }
 
+function ahx_i18n_looks_like_php_expression_fragment($text) {
+    $text = trim((string) $text);
+    if ($text === '') {
+        return false;
+    }
+
+    // Typical concatenation fragment from echoed HTML: ' . expr . '
+    if (preg_match('/^["\']\s*\.\s*.+\s*\.\s*["\']$/s', $text)) {
+        return true;
+    }
+
+    // Variables, object access, array access, or function-like calls in fragments are not translatable text.
+    if (preg_match('/\$[A-Za-z_][A-Za-z0-9_]*|->|::|\[[^\]]*\]|\b[A-Za-z_][A-Za-z0-9_]*\s*\(/', $text)) {
+        return true;
+    }
+
+    return false;
+}
+
+function ahx_i18n_extract_trailing_open_tag_name($html_prefix) {
+    $html_prefix = (string) $html_prefix;
+    if ($html_prefix === '') {
+        return '';
+    }
+
+    if (!preg_match('/<([a-z][a-z0-9]*)\b[^>]*>\s*$/i', $html_prefix, $m)) {
+        return '';
+    }
+
+    return strtolower((string) $m[1]);
+}
+
+function ahx_i18n_is_non_translatable_html_context($tag_name) {
+    $tag_name = strtolower(trim((string) $tag_name));
+    if ($tag_name === '') {
+        return false;
+    }
+
+    return in_array($tag_name, ['style', 'script'], true);
+}
+
+function ahx_i18n_is_offset_in_php_comment($contents, $offset) {
+    static $cache = [];
+
+    $contents = (string) $contents;
+    $offset = max(0, (int) $offset);
+    $key = md5($contents);
+
+    if (!isset($cache[$key])) {
+        $ranges = [];
+        $cursor = 0;
+        $tokens = token_get_all($contents);
+        foreach ($tokens as $token) {
+            if (is_array($token)) {
+                $token_id = (int) $token[0];
+                $token_text = (string) $token[1];
+                $length = strlen($token_text);
+                if ($token_id === T_COMMENT || $token_id === T_DOC_COMMENT) {
+                    $ranges[] = [
+                        'start' => $cursor,
+                        'end' => $cursor + $length,
+                    ];
+                }
+                $cursor += $length;
+            } else {
+                $cursor += strlen((string) $token);
+            }
+        }
+        $cache[$key] = $ranges;
+    }
+
+    foreach ($cache[$key] as $range) {
+        if ($offset >= $range['start'] && $offset < $range['end']) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function ahx_i18n_build_plain_candidate($file, $contents, $start, $end, $replace_from, $replace_to, $preview, $kind) {
-    $line = substr_count(substr($contents, 0, max(0, (int) $start)), "\n") + 1;
+    $safe_start = max(0, (int) $start);
+    $safe_end = max($safe_start, (int) $end);
+    $line = substr_count(substr($contents, 0, $safe_start), "\n") + 1;
+
+    $line_start = strrpos(substr($contents, 0, $safe_start), "\n");
+    $line_start = ($line_start === false) ? 0 : ($line_start + 1);
+    $line_end = strpos($contents, "\n", $safe_end);
+    if ($line_end === false) {
+        $line_end = strlen($contents);
+    }
+
+    $line_original = substr($contents, $line_start, max(0, $line_end - $line_start));
+    $relative_start = max(0, $safe_start - $line_start);
+    $relative_end = max($relative_start, $safe_end - $line_start);
+    $line_converted = substr($line_original, 0, $relative_start)
+        . (string) $replace_to
+        . substr($line_original, $relative_end);
+
+    $line_original = rtrim((string) $line_original, "\r\n");
+    $line_converted = rtrim((string) $line_converted, "\r\n");
+
     $payload = [
         'file' => wp_normalize_path($file),
-        'start' => (int) $start,
-        'end' => (int) $end,
+        'start' => $safe_start,
+        'end' => $safe_end,
         'replace_from' => (string) $replace_from,
         'replace_to' => (string) $replace_to,
         'preview' => (string) $preview,
@@ -1052,6 +1354,8 @@ function ahx_i18n_build_plain_candidate($file, $contents, $start, $end, $replace
         'line' => $payload['line'],
         'preview' => $payload['preview'],
         'kind' => $payload['kind'],
+        'line_original' => $line_original,
+        'line_converted' => $line_converted,
     ];
 }
 
