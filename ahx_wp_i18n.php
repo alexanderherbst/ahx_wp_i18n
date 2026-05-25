@@ -3,7 +3,7 @@
  * Plugin Name: AHX WP i18n
  * Plugin URI:  https://example.com
  * Description: Create/update POT, edit PO and compile MO. WP-CLI support and optional machine-translate.
- * Version:     v1.1.1
+ * Version:     v1.1.2
  * Author:      Alexander Herbst
  * Text Domain: ahx_wp_i18n
  * Domain Path: /languages

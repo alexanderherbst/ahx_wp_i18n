@@ -1,6 +1,6 @@
 # AHX WP i18n
 
-**Version:** v1.1.1  
+**Version:** v1.1.2  
 **Autor:** Alexander Herbst  
 **Text Domain:** `ahx_wp_i18n`
 

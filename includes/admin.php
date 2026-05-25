@@ -679,6 +679,16 @@ function ahx_i18n_admin_page() {
             echo '<div class="notice notice-error"><p>' . esc_html($create_result->get_error_message()) . '</p></div>';
         } else {
             $po_editor_path = (string) $create_result['po_path'];
+            $migration_message = '';
+            if (!empty($create_result['migrated_legacy']) && !empty($create_result['migrated_legacy_po_paths']) && is_array($create_result['migrated_legacy_po_paths'])) {
+                $migrated_list = implode(', ', array_map('wp_normalize_path', $create_result['migrated_legacy_po_paths']));
+                $migration_message = ' ' . sprintf(
+                    /* translators: %s: comma-separated list of migrated legacy PO paths */
+                    __('Legacy-Dateien migriert: %s', 'ahx_wp_i18n'),
+                    $migrated_list
+                );
+            }
+
             if (!empty($create_result['merged'])) {
                 $message = sprintf(
                     /* translators: 1: PO path, 2: total entries, 3: new entries */
@@ -695,7 +705,7 @@ function ahx_i18n_admin_page() {
                     (int) $create_result['entry_count']
                 );
             }
-            echo '<div class="notice notice-success"><p>' . esc_html($message) . '</p></div>';
+            echo '<div class="notice notice-success"><p>' . esc_html($message . $migration_message) . '</p></div>';
         }
     }
 

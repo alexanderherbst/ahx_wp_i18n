@@ -742,6 +742,56 @@ function ahx_i18n_is_legacy_translation_basename($basename) {
     return (bool) preg_match('/^[A-Za-z]{2,3}(?:[_-][A-Za-z0-9]{2,})?(?:@[A-Za-z0-9]+)?$/', $basename);
 }
 
+function ahx_i18n_find_legacy_po_paths($directory, $locale, $exclude_paths = []) {
+    $directory = wp_normalize_path((string) $directory);
+    $locale = trim((string) $locale);
+    $exclude_paths = is_array($exclude_paths) ? $exclude_paths : [];
+
+    if ($directory === '' || $locale === '' || !is_dir($directory)) {
+        return [];
+    }
+
+    $normalize_cmp = static function ($path) {
+        $path = wp_normalize_path((string) $path);
+        if (stripos(PHP_OS, 'WIN') === 0) {
+            $path = strtolower($path);
+        }
+        return $path;
+    };
+
+    $exclude_map = [];
+    foreach ($exclude_paths as $exclude_path) {
+        $exclude_key = $normalize_cmp($exclude_path);
+        if ($exclude_key !== '') {
+            $exclude_map[$exclude_key] = true;
+        }
+    }
+
+    $locale_variants = [$locale];
+    $locale_variants[] = str_replace('_', '-', $locale);
+    $locale_variants[] = str_replace('-', '_', $locale);
+    $locale_variants = array_values(array_unique(array_filter(array_map('trim', $locale_variants))));
+
+    $found = [];
+    foreach ($locale_variants as $variant) {
+        if (!ahx_i18n_is_legacy_translation_basename($variant)) {
+            continue;
+        }
+
+        $candidate = trailingslashit($directory) . $variant . '.po';
+        $candidate = wp_normalize_path($candidate);
+        $candidate_key = $normalize_cmp($candidate);
+        if (isset($exclude_map[$candidate_key])) {
+            continue;
+        }
+        if (is_file($candidate)) {
+            $found[$candidate_key] = $candidate;
+        }
+    }
+
+    return array_values($found);
+}
+
 function ahx_i18n_create_po_from_pot($pot_path, $locale, $text_domain, $po_path = '') {
     $pot_path = (string) $pot_path;
     if (!is_file($pot_path)) {
@@ -770,15 +820,51 @@ function ahx_i18n_create_po_from_pot($pot_path, $locale, $text_domain, $po_path 
 
     $pot_entries = ahx_i18n_parse_gettext_entries($pot_contents);
 
-    // Load existing translations if the PO file already exists
+    // Load existing translations from canonical and legacy-named PO files.
     $existing_map = [];
-    if (is_file($po_path)) {
-        $existing_contents = @file_get_contents($po_path);
-        if ($existing_contents !== false) {
-            foreach (ahx_i18n_parse_gettext_entries($existing_contents) as $ex) {
-                $key = ahx_i18n_gettext_entry_key($ex);
+    $legacy_po_paths = ahx_i18n_find_legacy_po_paths(dirname($po_path), $locale, [$po_path]);
+    $source_po_paths = array_merge([$po_path], $legacy_po_paths);
+    $used_legacy_po_paths = [];
+
+    foreach ($source_po_paths as $source_po_path) {
+        if (!is_file($source_po_path)) {
+            continue;
+        }
+
+        $existing_contents = @file_get_contents($source_po_path);
+        if ($existing_contents === false) {
+            continue;
+        }
+
+        $is_legacy_source = ($source_po_path !== $po_path);
+        if ($is_legacy_source) {
+            $used_legacy_po_paths[] = wp_normalize_path((string) $source_po_path);
+        }
+
+        foreach (ahx_i18n_parse_gettext_entries($existing_contents) as $ex) {
+            $key = ahx_i18n_gettext_entry_key($ex);
+            if (!isset($existing_map[$key])) {
                 $existing_map[$key] = $ex;
+                continue;
             }
+
+            $current_msgstr = isset($existing_map[$key]['msgstr']) && is_array($existing_map[$key]['msgstr'])
+                ? $existing_map[$key]['msgstr']
+                : [];
+            $incoming_msgstr = isset($ex['msgstr']) && is_array($ex['msgstr'])
+                ? $ex['msgstr']
+                : [];
+
+            foreach ($incoming_msgstr as $idx => $value) {
+                $idx = (int) $idx;
+                $incoming_value = trim((string) $value);
+                $current_value = trim((string) ($current_msgstr[$idx] ?? ''));
+                if ($current_value === '' && $incoming_value !== '') {
+                    $current_msgstr[$idx] = (string) $value;
+                }
+            }
+
+            $existing_map[$key]['msgstr'] = $current_msgstr;
         }
     }
 
@@ -816,11 +902,44 @@ function ahx_i18n_create_po_from_pot($pot_path, $locale, $text_domain, $po_path 
         return new WP_Error('po_write_failed', 'Could not write PO file');
     }
 
+    $migrated_legacy_po_paths = [];
+    $migrated_legacy_mo_paths = [];
+    $target_mo_path = preg_replace('/\.po$/i', '.mo', $po_path);
+
+    foreach ($used_legacy_po_paths as $legacy_po_path) {
+        $legacy_po_path = wp_normalize_path((string) $legacy_po_path);
+        if ($legacy_po_path === '' || $legacy_po_path === wp_normalize_path($po_path)) {
+            continue;
+        }
+
+        if (is_file($legacy_po_path) && @unlink($legacy_po_path)) {
+            $migrated_legacy_po_paths[] = $legacy_po_path;
+        }
+
+        $legacy_mo_path = preg_replace('/\.po$/i', '.mo', $legacy_po_path);
+        if (!is_string($legacy_mo_path) || $legacy_mo_path === '' || !is_file($legacy_mo_path)) {
+            continue;
+        }
+
+        if (is_string($target_mo_path) && $target_mo_path !== '' && !is_file($target_mo_path)) {
+            if (@rename($legacy_mo_path, $target_mo_path)) {
+                $migrated_legacy_mo_paths[] = wp_normalize_path($legacy_mo_path);
+            }
+        } else {
+            if (@unlink($legacy_mo_path)) {
+                $migrated_legacy_mo_paths[] = wp_normalize_path($legacy_mo_path);
+            }
+        }
+    }
+
     return [
-        'po_path'     => $po_path,
+        'po_path' => $po_path,
         'entry_count' => count($po_entries),
-        'new_count'   => $new_count,
-        'merged'      => !empty($existing_map),
+        'new_count' => $new_count,
+        'merged' => !empty($existing_map),
+        'migrated_legacy' => !empty($migrated_legacy_po_paths) || !empty($migrated_legacy_mo_paths),
+        'migrated_legacy_po_paths' => array_values(array_unique($migrated_legacy_po_paths)),
+        'migrated_legacy_mo_paths' => array_values(array_unique($migrated_legacy_mo_paths)),
     ];
 }
 
@@ -1018,8 +1137,17 @@ function ahx_i18n_find_plain_text_in_file($file, $contents, $text_domain, $limit
                 continue;
             }
 
-            $replacement = ($keyword === 'print' ? 'print ' : 'echo ') . 'esc_html__(' . ahx_i18n_php_quote($text) . ', ' . ahx_i18n_php_quote($text_domain) . ');';
-            $results[] = ahx_i18n_build_plain_candidate($file, $contents, $start, $start + strlen($full), $full, $replacement, $text, 'php');
+            $affixes = ahx_i18n_split_translatable_text_affixes($text);
+            $text_for_translation = (string) $affixes['text'];
+            if ($text_for_translation === '') {
+                continue;
+            }
+
+            $translation_expr = 'esc_html__(' . ahx_i18n_php_quote($text_for_translation) . ', ' . ahx_i18n_php_quote($text_domain) . ')';
+            $replacement_expr = ahx_i18n_build_concat_expression_with_affixes($translation_expr, (string) $affixes['prefix'], (string) $affixes['suffix']);
+
+            $replacement = ($keyword === 'print' ? 'print ' : 'echo ') . $replacement_expr . ';';
+            $results[] = ahx_i18n_build_plain_candidate($file, $contents, $start, $start + strlen($full), $full, $replacement, $text_for_translation, 'php');
         }
     }
 
@@ -1086,15 +1214,28 @@ function ahx_i18n_find_plain_text_in_file($file, $contents, $text_domain, $limit
                     continue;
                 }
 
+                $affixes = ahx_i18n_split_translatable_text_affixes($trimmed);
+                $text_for_translation = (string) $affixes['text'];
+                if ($text_for_translation === '') {
+                    continue;
+                }
+
                 $leading = (string) preg_replace('/^(\s*).*$/s', '$1', $raw);
                 $trailing = (string) preg_replace('/^.*?(\s*)$/s', '$1', $raw);
-                $replacement = $quote
-                    . ' . esc_html__('
-                    . ahx_i18n_php_quote($trimmed)
+
+                $replacement_parts = [];
+                if ((string) $affixes['prefix'] !== '') {
+                    $replacement_parts[] = $quote . ahx_i18n_escape_php_string_for_quote((string) $affixes['prefix'], $quote) . $quote;
+                }
+                $replacement_parts[] = 'esc_html__('
+                    . ahx_i18n_php_quote($text_for_translation)
                     . ', '
                     . ahx_i18n_php_quote($text_domain)
-                    . ') . '
-                    . $quote;
+                    . ')';
+                if ((string) $affixes['suffix'] !== '') {
+                    $replacement_parts[] = $quote . ahx_i18n_escape_php_string_for_quote((string) $affixes['suffix'], $quote) . $quote;
+                }
+                $replacement = $quote . ' . ' . implode(' . ', $replacement_parts) . ' . ' . $quote;
 
                 if ($leading !== '' || $trailing !== '') {
                     $replacement = $leading . $replacement . $trailing;
@@ -1107,7 +1248,7 @@ function ahx_i18n_find_plain_text_in_file($file, $contents, $text_domain, $limit
                     $raw_offset + strlen($raw),
                     $raw,
                     $replacement,
-                    $trimmed,
+                    $text_for_translation,
                     'html-echo-multi'
                 );
             }
@@ -1152,10 +1293,19 @@ function ahx_i18n_find_plain_text_in_file($file, $contents, $text_domain, $limit
             if (!ahx_i18n_is_plain_text_candidate($text)) {
                 continue;
             }
+
+            $affixes = ahx_i18n_split_translatable_text_affixes($text);
+            $text_for_translation = (string) $affixes['text'];
+            if ($text_for_translation === '') {
+                continue;
+            }
+
             $q           = $html_echo_case['q'];
             $keyword_str = ($keyword === 'print') ? 'print ' : 'echo ';
-            $replacement = $keyword_str . $q . $before . $q . ' . esc_html__(' . ahx_i18n_php_quote($text) . ', ' . ahx_i18n_php_quote($text_domain) . ') . ' . $q . $after . $q . ';';
-            $results[]   = ahx_i18n_build_plain_candidate($file, $contents, $start, $start + strlen($full), $full, $replacement, $text, 'html-echo');
+            $translation_expr = 'esc_html__(' . ahx_i18n_php_quote($text_for_translation) . ', ' . ahx_i18n_php_quote($text_domain) . ')';
+            $wrapped_expr = ahx_i18n_build_concat_expression_with_affixes($translation_expr, (string) $affixes['prefix'], (string) $affixes['suffix']);
+            $replacement = $keyword_str . $q . $before . $q . ' . ' . $wrapped_expr . ' . ' . $q . $after . $q . ';';
+            $results[]   = ahx_i18n_build_plain_candidate($file, $contents, $start, $start + strlen($full), $full, $replacement, $text_for_translation, 'html-echo');
         }
     }
 
@@ -1201,14 +1351,81 @@ function ahx_i18n_find_plain_text_in_file($file, $contents, $text_domain, $limit
                 continue;
             }
 
+            $affixes = ahx_i18n_split_translatable_text_affixes($trimmed);
+            $text_for_translation = (string) $affixes['text'];
+            if ($text_for_translation === '') {
+                continue;
+            }
+
             $leading = (string) preg_replace('/^(\s*).*$/s', '$1', $raw);
             $trailing = (string) preg_replace('/^.*?(\s*)$/s', '$1', $raw);
-            $replacement = $leading . '<?php echo esc_html__(' . ahx_i18n_php_quote($trimmed) . ', ' . ahx_i18n_php_quote($text_domain) . '); ?>' . $trailing;
-            $results[] = ahx_i18n_build_plain_candidate($file, $contents, $raw_start, $raw_start + strlen($raw), $raw, $replacement, $trimmed, 'html');
+            $replacement = $leading
+                . (string) $affixes['prefix']
+                . '<?php echo esc_html__(' . ahx_i18n_php_quote($text_for_translation) . ', ' . ahx_i18n_php_quote($text_domain) . '); ?>'
+                . (string) $affixes['suffix']
+                . $trailing;
+            $results[] = ahx_i18n_build_plain_candidate($file, $contents, $raw_start, $raw_start + strlen($raw), $raw, $replacement, $text_for_translation, 'html');
         }
     }
 
     return $results;
+}
+
+function ahx_i18n_split_translatable_text_affixes($text) {
+    $text = (string) $text;
+    if ($text === '') {
+        return ['prefix' => '', 'text' => '', 'suffix' => ''];
+    }
+
+    $prefix = '';
+    $suffix = '';
+    $core = $text;
+
+    if (preg_match('/^([\s\p{S}\p{C}]+)(.*)$/u', $core, $m)) {
+        $prefix = (string) $m[1];
+        $core = (string) $m[2];
+    }
+
+    if ($core !== '' && preg_match('/^(.*?)([\s\p{S}\p{C}]+)$/u', $core, $m)) {
+        $core = (string) $m[1];
+        $suffix = (string) $m[2];
+    }
+
+    if (trim($core) === '') {
+        return ['prefix' => '', 'text' => trim($text), 'suffix' => ''];
+    }
+
+    return [
+        'prefix' => $prefix,
+        'text' => $core,
+        'suffix' => $suffix,
+    ];
+}
+
+function ahx_i18n_build_concat_expression_with_affixes($core_expression, $prefix, $suffix) {
+    $parts = [];
+    if ((string) $prefix !== '') {
+        $parts[] = ahx_i18n_php_quote((string) $prefix);
+    }
+    $parts[] = (string) $core_expression;
+    if ((string) $suffix !== '') {
+        $parts[] = ahx_i18n_php_quote((string) $suffix);
+    }
+
+    return implode(' . ', $parts);
+}
+
+function ahx_i18n_escape_php_string_for_quote($value, $quote) {
+    $value = (string) $value;
+    $value = str_replace('\\', '\\\\', $value);
+
+    if ($quote === '"') {
+        $value = str_replace('"', '\\"', $value);
+        $value = str_replace('$', '\\$', $value);
+        return $value;
+    }
+
+    return str_replace("'", "\\'", $value);
 }
 
 function ahx_i18n_is_plain_text_candidate($text) {
@@ -1242,8 +1459,27 @@ function ahx_i18n_looks_like_php_expression_fragment($text) {
     }
 
     // Typical concatenation fragment from echoed HTML: ' . expr . '
-    if (preg_match('/^["\']\s*\.\s*.+\s*\.\s*["\']$/s', $text)) {
-        return true;
+    if (preg_match('/^["\']\s*\.\s*(.+?)\s*\.\s*["\']$/s', $text, $m)) {
+        $inner = trim((string) $m[1]);
+        if ($inner === '') {
+            return false;
+        }
+
+        // Ignore symbol-only fragments (e.g. emoji such as ✅ or ❌).
+        $inner_without_symbols = trim((string) preg_replace('/[\p{S}\p{C}]+/u', '', $inner));
+        if ($inner_without_symbols === '') {
+            return false;
+        }
+
+        if (preg_match('/\$[A-Za-z_][A-Za-z0-9_]*|->|::|\[[^\]]*\]|\b[A-Za-z_][A-Za-z0-9_]*\s*\(/', $inner_without_symbols)) {
+            return true;
+        }
+
+        if (preg_match('/[+\-*\/%?:=]/', $inner_without_symbols)) {
+            return true;
+        }
+
+        return false;
     }
 
     // Variables, object access, array access, or function-like calls in fragments are not translatable text.
